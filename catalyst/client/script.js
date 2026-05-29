@@ -6,7 +6,7 @@
                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     let currentCalc = null;
     let historyCache = [];
-    let charts = { trend: null, consumption: null, acUsage: null, aaditya: null, kishore: null, palani: null };
+    let charts = { monthly: null, acUsage: null, aaditya: null, kishore: null, palani: null, common: null };
     let confirmCallback = null;
 
     const $ = (id) => document.getElementById(id);
@@ -427,7 +427,7 @@
             row('Total Bill', '\u20B9' + h.totalBill.toFixed(2)) +
             row('Per Unit Rate', '\u20B9' + h.perUnitRate.toFixed(2)) +
             row('Common Units', h.commonUnits.toFixed(2)) +
-            row('Common/Person', commonPerPerson.toFixed(2) + ' units') +
+            row('Common/Person', commonPerPerson.toFixed(2) + ' units / \u20B9' + (commonPerPerson * h.perUnitRate).toFixed(2)) +
             '<hr style="margin:12px 0;border:none;border-top:1px solid #e0e0e0">' +
             row('Aaditya (AC: ' + h.ac1.toFixed(2) + ')', '\u20B9' + h.person1Amount.toFixed(2)) +
             row('Kishore (AC: ' + h.ac2.toFixed(2) + ')', '\u20B9' + h.person2Amount.toFixed(2)) +
@@ -488,40 +488,51 @@
         const chartLayout = { padding: { top: 25 } };
         const baseOptions = { responsive: true, aspectRatio: isMobile ? 1.4 : 2 };
 
-        if (charts.trend) charts.trend.destroy();
-        if (charts.consumption) charts.consumption.destroy();
+        if (charts.monthly) charts.monthly.destroy();
         if (charts.acUsage) charts.acUsage.destroy();
         if (charts.aaditya) charts.aaditya.destroy();
         if (charts.kishore) charts.kishore.destroy();
         if (charts.palani) charts.palani.destroy();
+        if (charts.common) charts.common.destroy();
 
-        charts.trend = new Chart($('chartBillTrend'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Total Bill (\u20B9)',
-                    data: sorted.map(h => h.totalBill),
-                    borderColor: '#1976d2',
-                    backgroundColor: 'rgba(25,118,210,0.1)',
-                    fill: true,
-                    tension: 0.3
-                }]
-            },
-            options: { ...baseOptions, layout: chartLayout, plugins: { legend: { display: false }, datalabels: defaultDatalabels } }
-        });
-
-        charts.consumption = new Chart($('chartUnitConsumption'), {
+        charts.monthly = new Chart($('chartMonthly'), {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Total Units',
-                    data: sorted.map(h => h.totalUnits),
-                    backgroundColor: '#42a5f5'
-                }]
+                datasets: [
+                    {
+                        label: 'Total Units',
+                        data: sorted.map(h => h.totalUnits),
+                        backgroundColor: '#42a5f5',
+                        order: 2,
+                        datalabels: { anchor: 'center', align: 'center', color: '#fff', font: { size: isMobile ? 10 : 12, weight: '700' }, formatter: function (v) { return (v % 1 === 0 ? v : v.toFixed(0)) + ' u'; } }
+                    },
+                    {
+                        label: 'Total Bill',
+                        data: sorted.map(h => h.totalBill),
+                        type: 'line',
+                        borderColor: '#e65100',
+                        backgroundColor: 'rgba(230,81,0,0.08)',
+                        fill: true,
+                        tension: 0.3,
+                        yAxisID: 'yBill',
+                        order: 1,
+                        datalabels: { anchor: 'end', align: 'top', offset: 6, color: '#e65100', font: { size: labelSize, weight: '600' }, formatter: function (v) { return '\u20B9' + (v % 1 === 0 ? v : v.toFixed(0)); } }
+                    }
+                ]
             },
-            options: { ...baseOptions, layout: chartLayout, plugins: { legend: { display: false }, datalabels: defaultDatalabels } }
+            options: {
+                ...baseOptions,
+                layout: { padding: { top: 30, right: 10 } },
+                scales: {
+                    y: { title: { display: !isMobile, text: 'Units' }, position: 'left' },
+                    yBill: { title: { display: !isMobile, text: 'Bill (Rs)' }, position: 'right', grid: { drawOnChartArea: false } }
+                },
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 12, font: { size: labelSize } } },
+                    datalabels: { font: { size: labelSize, weight: '600' } }
+                }
+            }
         });
 
         charts.acUsage = new Chart($('chartACUsage'), {
@@ -562,13 +573,13 @@
                             label: name + ' AC Bill',
                             data: sorted.map(h => parseFloat((h[acKey] * h.perUnitRate).toFixed(2))),
                             type: 'line',
-                            borderColor: '#d32f2f',
-                            backgroundColor: 'rgba(211,47,47,0.1)',
+                            borderColor: '#e65100',
+                            backgroundColor: 'rgba(230,81,0,0.08)',
                             fill: true,
                             tension: 0.3,
                             yAxisID: 'yBill',
                             order: 1,
-                            datalabels: { anchor: 'end', align: 'top', offset: 6, color: '#d32f2f', font: { size: labelSize, weight: '600' }, formatter: function (v) { return '\u20B9' + (v % 1 === 0 ? v : v.toFixed(0)); } }
+                            datalabels: { anchor: 'end', align: 'top', offset: 6, color: '#e65100', font: { size: labelSize, weight: '600' }, formatter: function (v) { return '\u20B9' + (v % 1 === 0 ? v : v.toFixed(0)); } }
                         }
                     ]
                 },
@@ -590,6 +601,46 @@
         charts.aaditya = userChart('chartAaditya', 'Aaditya', 'ac1', 'person1Amount', '#1976d2');
         charts.kishore = userChart('chartKishore', 'Kishore', 'ac2', 'person2Amount', '#42a5f5');
         charts.palani = userChart('chartPalani', 'Palani', 'ac3', 'person3Amount', '#90caf9');
+
+        charts.common = new Chart($('chartCommon'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Common Units',
+                        data: sorted.map(h => h.commonUnits),
+                        backgroundColor: '#ff9800',
+                        order: 2,
+                        datalabels: { anchor: 'center', align: 'center', color: '#fff', font: { size: isMobile ? 10 : 12, weight: '700' }, formatter: function (v) { return (v % 1 === 0 ? v : v.toFixed(0)) + ' u'; } }
+                    },
+                    {
+                        label: 'Common Bill',
+                        data: sorted.map(h => parseFloat((h.commonUnits * h.perUnitRate).toFixed(2))),
+                        type: 'line',
+                        borderColor: '#e65100',
+                        backgroundColor: 'rgba(230,81,0,0.08)',
+                        fill: true,
+                        tension: 0.3,
+                        yAxisID: 'yBill',
+                        order: 1,
+                        datalabels: { anchor: 'end', align: 'top', offset: 6, color: '#e65100', font: { size: labelSize, weight: '600' }, formatter: function (v) { return '\u20B9' + (v % 1 === 0 ? v : v.toFixed(0)); } }
+                    }
+                ]
+            },
+            options: {
+                ...baseOptions,
+                layout: { padding: { top: 30, right: 10 } },
+                scales: {
+                    y: { title: { display: !isMobile, text: 'Units' }, position: 'left' },
+                    yBill: { title: { display: !isMobile, text: 'Bill (Rs)' }, position: 'right', grid: { drawOnChartArea: false } }
+                },
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 12, font: { size: labelSize } } },
+                    datalabels: { font: { size: labelSize, weight: '600' } }
+                }
+            }
+        });
 
         $('chartsSection').classList.remove('hidden');
     }
