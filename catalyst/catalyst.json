@@ -1,0 +1,11 @@
+{
+    "functions": {
+        "targets": [
+            "eb_bill_api"
+        ],
+        "source": "functions"
+    },
+    "client": {
+        "source": "client"
+    }
+}

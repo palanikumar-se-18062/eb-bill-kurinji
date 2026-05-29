@@ -1,0 +1,10 @@
+{
+    "deployment": {
+        "name": "eb_bill_api",
+        "stack": "node18",
+        "type": "basicio"
+    },
+    "execution": {
+        "main": "index.js"
+    }
+}

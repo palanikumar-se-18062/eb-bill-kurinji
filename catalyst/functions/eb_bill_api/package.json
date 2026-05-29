@@ -1,0 +1,9 @@
+{
+  "name": "eb_bill_api",
+  "version": "1.0.0",
+  "description": "EB Bill Splitter API function",
+  "main": "index.js",
+  "dependencies": {
+    "zcatalyst-sdk-node": "latest"
+  }
+}
