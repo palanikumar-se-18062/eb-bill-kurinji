@@ -208,12 +208,12 @@
         if (!v) return;
 
         const perUnitRate = v.totalBill / v.totalUnits;
-        const commonUnits = v.totalUnits - (v.ac1 + v.ac2 + v.ac3);
+        const commonUnits = parseFloat((v.totalUnits - (v.ac1 + v.ac2 + v.ac3)).toFixed(2));
         const commonPerPerson = commonUnits / 3;
 
-        const person1 = (v.ac1 + commonPerPerson) * perUnitRate;
-        const person2 = (v.ac2 + commonPerPerson) * perUnitRate;
-        const person3 = (v.ac3 + commonPerPerson) * perUnitRate;
+        const person1 = parseFloat(((v.ac1 + commonPerPerson) * perUnitRate).toFixed(2));
+        const person2 = parseFloat(((v.ac2 + commonPerPerson) * perUnitRate).toFixed(2));
+        const person3 = parseFloat(((v.ac3 + commonPerPerson) * perUnitRate).toFixed(2));
 
         currentCalc = {
             month: monthInput.value,
@@ -237,7 +237,7 @@
 
     function renderResult(c) {
         $('summaryRate').textContent = '\u20B9' + c.perUnitRate.toFixed(2) + ' / unit';
-        $('summaryCommon').textContent = c.commonUnits + ' Units';
+        $('summaryCommon').textContent = c.commonUnits.toFixed(2) + ' Units';
         $('summaryShare').textContent = (c.commonUnits / 3).toFixed(2) + ' Units';
 
         const commonPerPerson = c.commonUnits / 3;
@@ -252,7 +252,7 @@
             const commonCharge = commonPerPerson * c.perUnitRate;
             return '<div class="breakdown-card">' +
                 '<h3>' + r.name + '</h3>' +
-                '<div class="breakdown-row"><span>AC Units</span><span>' + r.ac + '</span></div>' +
+                '<div class="breakdown-row"><span>AC Units</span><span>' + r.ac.toFixed(2) + '</span></div>' +
                 '<div class="breakdown-row"><span>AC Charge</span><span>\u20B9' + acCharge.toFixed(2) + '</span></div>' +
                 '<div class="breakdown-row"><span>Common Charge</span><span>\u20B9' + commonCharge.toFixed(2) + '</span></div>' +
                 '<div class="breakdown-total"><span>Total Payable</span><span>\u20B9' + r.amount.toFixed(2) + '</span></div>' +
@@ -366,15 +366,15 @@
         tbody.innerHTML = history.map((h, i) =>
             '<tr>' +
             '<td>' + formatMonth(h.month) + '</td>' +
-            '<td>' + h.totalUnits + '</td>' +
-            '<td>\u20B9' + h.totalBill.toFixed(0) + '</td>' +
-            '<td>' + h.ac1 + '</td>' +
-            '<td>' + h.ac2 + '</td>' +
-            '<td>' + h.ac3 + '</td>' +
+            '<td>' + h.totalUnits.toFixed(2) + '</td>' +
+            '<td>\u20B9' + h.totalBill.toFixed(2) + '</td>' +
+            '<td>' + h.ac1.toFixed(2) + '</td>' +
+            '<td>' + h.ac2.toFixed(2) + '</td>' +
+            '<td>' + h.ac3.toFixed(2) + '</td>' +
             '<td>\u20B9' + h.perUnitRate.toFixed(2) + '</td>' +
-            '<td>\u20B9' + h.person1Amount.toFixed(0) + '</td>' +
-            '<td>\u20B9' + h.person2Amount.toFixed(0) + '</td>' +
-            '<td>\u20B9' + h.person3Amount.toFixed(0) + '</td>' +
+            '<td>\u20B9' + h.person1Amount.toFixed(2) + '</td>' +
+            '<td>\u20B9' + h.person2Amount.toFixed(2) + '</td>' +
+            '<td>\u20B9' + h.person3Amount.toFixed(2) + '</td>' +
             '<td>' +
                 '<button class="btn btn-primary btn-sm" onclick="app.viewRecord(' + i + ')">View</button> ' +
                 '<button class="btn btn-danger btn-sm" onclick="app.deleteRecord(' + i + ')">Delete</button>' +
@@ -398,15 +398,15 @@
             '<div class="breakdown-row"><span>' + label + '</span><span>' + val + '</span></div>';
 
         $('viewContent').innerHTML =
-            row('Total Units', h.totalUnits) +
+            row('Total Units', h.totalUnits.toFixed(2)) +
             row('Total Bill', '\u20B9' + h.totalBill.toFixed(2)) +
             row('Per Unit Rate', '\u20B9' + h.perUnitRate.toFixed(2)) +
             row('Common Units', h.commonUnits.toFixed(2)) +
             row('Common/Person', commonPerPerson.toFixed(2) + ' units') +
             '<hr style="margin:12px 0;border:none;border-top:1px solid #e0e0e0">' +
-            row('Aaditya (AC: ' + h.ac1 + ')', '\u20B9' + h.person1Amount.toFixed(2)) +
-            row('Kishore (AC: ' + h.ac2 + ')', '\u20B9' + h.person2Amount.toFixed(2)) +
-            row('Palani (AC: ' + h.ac3 + ')', '\u20B9' + h.person3Amount.toFixed(2));
+            row('Aaditya (AC: ' + h.ac1.toFixed(2) + ')', '\u20B9' + h.person1Amount.toFixed(2)) +
+            row('Kishore (AC: ' + h.ac2.toFixed(2) + ')', '\u20B9' + h.person2Amount.toFixed(2)) +
+            row('Palani (AC: ' + h.ac3.toFixed(2) + ')', '\u20B9' + h.person3Amount.toFixed(2));
 
         $('viewOverlay').classList.remove('hidden');
     }
@@ -438,8 +438,17 @@
     }
 
     function renderCharts(history) {
+        Chart.register(ChartDataLabels);
         const sorted = [...history].sort((a, b) => a.month.localeCompare(b.month));
         const labels = sorted.map(h => formatMonth(h.month));
+
+        const defaultDatalabels = {
+            anchor: 'end',
+            align: 'top',
+            font: { size: 11, weight: '600' },
+            color: '#333',
+            formatter: function (v) { return v % 1 === 0 ? v : v.toFixed(2); }
+        };
 
         if (charts.trend) charts.trend.destroy();
         if (charts.consumption) charts.consumption.destroy();
@@ -461,7 +470,7 @@
                     tension: 0.3
                 }]
             },
-            options: { responsive: true, plugins: { legend: { display: false } } }
+            options: { responsive: true, plugins: { legend: { display: false }, datalabels: defaultDatalabels } }
         });
 
         charts.consumption = new Chart($('chartUnitConsumption'), {
@@ -474,7 +483,7 @@
                     backgroundColor: '#42a5f5'
                 }]
             },
-            options: { responsive: true, plugins: { legend: { display: false } } }
+            options: { responsive: true, plugins: { legend: { display: false }, datalabels: defaultDatalabels } }
         });
 
         charts.acUsage = new Chart($('chartACUsage'), {
@@ -489,7 +498,8 @@
             },
             options: {
                 responsive: true,
-                scales: { x: { stacked: true }, y: { stacked: true } }
+                scales: { x: { stacked: true }, y: { stacked: true } },
+                plugins: { datalabels: { anchor: 'center', align: 'center', font: { size: 11, weight: '600' }, color: '#fff', formatter: function (v) { return v % 1 === 0 ? v : v.toFixed(2); } } }
             }
         });
 
@@ -503,18 +513,20 @@
                             label: name + ' AC Units',
                             data: sorted.map(h => h[acKey]),
                             backgroundColor: color,
-                            order: 2
+                            order: 2,
+                            datalabels: { anchor: 'end', align: 'top', color: '#333' }
                         },
                         {
                             label: name + ' AC Bill',
-                            data: sorted.map(h => h[acKey] * h.perUnitRate),
+                            data: sorted.map(h => parseFloat((h[acKey] * h.perUnitRate).toFixed(2))),
                             type: 'line',
                             borderColor: '#d32f2f',
                             backgroundColor: 'rgba(211,47,47,0.1)',
                             fill: true,
                             tension: 0.3,
                             yAxisID: 'yBill',
-                            order: 1
+                            order: 1,
+                            datalabels: { anchor: 'end', align: 'top', color: '#d32f2f' }
                         }
                     ]
                 },
@@ -523,7 +535,8 @@
                     scales: {
                         y: { title: { display: true, text: 'Units' }, position: 'left' },
                         yBill: { title: { display: true, text: 'Bill (Rs)' }, position: 'right', grid: { drawOnChartArea: false } }
-                    }
+                    },
+                    plugins: { datalabels: { font: { size: 11, weight: '600' }, formatter: function (v) { return v % 1 === 0 ? v : v.toFixed(2); } } }
                 }
             });
         }
