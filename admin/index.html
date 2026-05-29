@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EB Bill Splitter - Admin</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <header class="header">
+        <h1>Admin Panel</h1>
+        <p>Backup &amp; Restore EB Bill Data</p>
+    </header>
+
+    <section class="card">
+        <h2>Export Data</h2>
+        <p style="margin-bottom:12px;color:#616161;font-size:0.9rem">Download all saved records as a JSON file.</p>
+        <button id="btnExport" class="btn btn-primary">Export History</button>
+    </section>
+
+    <section class="card">
+        <h2>Import Data</h2>
+        <p style="margin-bottom:12px;color:#616161;font-size:0.9rem">Upload a JSON file to restore or replace history data.</p>
+        <label class="btn btn-secondary file-label">
+            Import History
+            <input type="file" id="fileImport" accept=".json" hidden>
+        </label>
+    </section>
+
+    <section class="card">
+        <h2>Current Data Preview</h2>
+        <p id="recordCount" style="margin-bottom:12px;color:#616161;font-size:0.9rem"></p>
+        <pre id="dataPreview" style="background:#f5f5f5;padding:16px;border-radius:8px;overflow-x:auto;font-size:0.8rem;max-height:400px;overflow-y:auto"></pre>
+    </section>
+
+    <div style="text-align:center;margin-top:16px">
+        <a href="../" class="btn btn-secondary">Back to App</a>
+    </div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+(function () {
+    'use strict';
+
+    const STORAGE_KEY = 'eb_bill_history';
+
+    function getHistory() {
+        try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function saveHistory(data) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function showToast(msg) {
+        var toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(function () { toast.classList.remove('show'); }, 2500);
+    }
+
+    function renderPreview() {
+        var history = getHistory();
+        document.getElementById('recordCount').textContent = history.length + ' record(s) in storage.';
+        document.getElementById('dataPreview').textContent = JSON.stringify(history, null, 2);
+    }
+
+    document.getElementById('btnExport').addEventListener('click', function () {
+        var history = getHistory();
+        if (history.length === 0) {
+            showToast('No history to export');
+            return;
+        }
+        var blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'eb-bill-history.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('History exported');
+    });
+
+    document.getElementById('fileImport').addEventListener('change', function (e) {
+        var file = e.target.files[0];
+        if (!file) return;
+
+        var reader = new FileReader();
+        reader.onload = function (ev) {
+            try {
+                var data = JSON.parse(ev.target.result);
+                if (!Array.isArray(data)) throw new Error('Invalid format');
+
+                for (var i = 0; i < data.length; i++) {
+                    if (!data[i].month || !data[i].totalUnits || !data[i].totalBill) {
+                        throw new Error('Invalid record found');
+                    }
+                }
+
+                saveHistory(data);
+                renderPreview();
+                showToast('History imported (' + data.length + ' records)');
+            } catch (err) {
+                showToast('Invalid JSON file: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    });
+
+    renderPreview();
+})();
+</script>
+</body>
+</html>
